@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -15,8 +16,14 @@ import (
 	"time"
 )
 
+type Record struct {
+	Type string
+	Name string
+	IP   string
+}
+
 // This function grabs the SSL certificate, then dumps the SAN and CommonName
-func sslChecks(ip string, resChan chan<- string, client *http.Client) {
+func sslChecks(ip string, resChan chan<- Record, client *http.Client) {
 
 	url := ip
 
@@ -40,14 +47,14 @@ func sslChecks(ip string, resChan chan<- string, client *http.Client) {
 	if resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
 		dnsNames := resp.TLS.PeerCertificates[0].DNSNames
 		for _, name := range dnsNames {
-			resChan <- "[SSL-SAN] " + ip + " " + string(name)
+			resChan <- Record{Type: "SSL-SAN", IP: ip, Name: name}
 		}
-		resChan <- "[SSL-CN] " + ip + " " + resp.TLS.PeerCertificates[0].Subject.CommonName
+		resChan <- Record{Type: "SSL-CN", IP: ip, Name: resp.TLS.PeerCertificates[0].Subject.CommonName}
 	}
 }
 
 // Do a DNS PTR lookup on the IP
-func dnsChecks(ip string, resChan chan<- string, resolver *net.Resolver) {
+func dnsChecks(ip string, resChan chan<- Record, resolver *net.Resolver) {
 
 	addr, err := resolver.LookupAddr(context.Background(), ip)
 	if err != nil {
@@ -55,11 +62,11 @@ func dnsChecks(ip string, resChan chan<- string, resolver *net.Resolver) {
 	}
 
 	for _, a := range addr {
-		resChan <- "[DNS-PTR] " + ip + " " + a
+		resChan <- Record{Type: "DNS-PTR", IP: ip, Name: a}
 	}
 }
 
-func worker(jobChan <-chan string, resChan chan<- string, wg *sync.WaitGroup, transport *http.Transport, client *http.Client, resolver *net.Resolver) {
+func worker(jobChan <-chan string, resChan chan<- Record, wg *sync.WaitGroup, transport *http.Transport, client *http.Client, resolver *net.Resolver) {
 	defer wg.Done()
 
 	for job := range jobChan {
@@ -73,11 +80,18 @@ func main() {
 	resolverIP := flag.String("r", "", "IP of DNS resolver for lookups")
 	dnsProtocol := flag.String("protocol", "udp", "Protocol for DNS lookups (tcp or udp)")
 	resolverPort := flag.Int("p", 53, "Port to bother the specified DNS resolver on")
+	format := flag.String("f", "text", "Output format, supports text, json")
 	flag.Parse()
+
+	if *format != "text" && *format != "json" {
+		fmt.Println("invalid output format")
+		flag.PrintDefaults()
+		return
+	}
 
 	scanner := bufio.NewScanner(os.Stdin)
 	jobChan := make(chan string)
-	resChan := make(chan string)
+	resChan := make(chan Record)
 	done := make(chan struct{})
 
 	// Set up TLS transport
@@ -117,7 +131,6 @@ func main() {
 	}()
 
 	for i := 0; i < *workers; i++ {
-
 		go worker(jobChan, resChan, &wg, transport, client, resolver)
 	}
 
@@ -136,10 +149,14 @@ func main() {
 		case <-done:
 			return
 		case res := <-resChan:
-			if strings.HasSuffix(res, ".") {
-				res = res[:len(res)-1]
+			switch *format {
+			case "text":
+				fmt.Printf("[%s] %s %s\n", res.Type, res.IP, res.Name)
+			case "json":
+				b, _ := json.Marshal(res)
+				fmt.Printf("%s\n", b)
 			}
-			fmt.Println(res)
+
 		}
 	}
 }
