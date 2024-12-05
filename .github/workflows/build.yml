@@ -31,13 +31,13 @@ jobs:
         CGO_ENABLED=0 GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -o hakip2host-${{ matrix.os }}-${{ matrix.arch }}-nocgo
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: hakip2host-${{ matrix.os }}-${{ matrix.arch }}
         path: ./hakip2host-${{ matrix.os }}-${{ matrix.arch }}
 
     - name: Upload build artifacts (nocgo)
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: hakip2host-${{ matrix.os }}-${{ matrix.arch }}-nocgo
         path: ./hakip2host-${{ matrix.os }}-${{ matrix.arch }}-nocgo
@@ -48,8 +48,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
-        release_name: ${{ github.ref }}
+        tag_name: ${{ github.ref_name }}
+        release_name: ${{ github.ref_name }}
         body: |
           Release
         draft: false
