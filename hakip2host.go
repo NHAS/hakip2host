@@ -10,6 +10,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"strings"
 	"sync"
@@ -113,10 +114,23 @@ func main() {
 	var resolver *net.Resolver
 
 	if *resolverIP != "" {
+		addr, err := netip.ParseAddr(*resolverIP)
+		if err != nil {
+			fmt.Println("resolver ip could not be parsed: ", err)
+			flag.PrintDefaults()
+			return
+		}
+
 		resolver = &net.Resolver{
 			PreferGo: true,
 			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
 				d := net.Dialer{}
+
+				if addr.Is6() && (!strings.HasPrefix(*resolverIP, "[") || !strings.HasSuffix(*resolverIP, "]")) {
+					// to use ports with ip address this must have brackets
+					*resolverIP = "[" + *resolverIP + "]"
+				}
+
 				return d.DialContext(ctx, *dnsProtocol, fmt.Sprintf("%s:%d", *resolverIP, *resolverPort))
 			},
 		}
