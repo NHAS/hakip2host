@@ -12,7 +12,7 @@ Current supported checks are:
 Install golang, then:
 
 ```
-go install github.com/hakluke/hakip2host@latest
+go install github.com/NHAS/hakip2host@latest
 ```
 
 ## Help
