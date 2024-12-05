@@ -62,7 +62,7 @@ func dnsChecks(ip string, resChan chan<- Record, resolver *net.Resolver) {
 	}
 
 	for _, a := range addr {
-		resChan <- Record{Type: "DNS-PTR", IP: ip, Name: a}
+		resChan <- Record{Type: "DNS-PTR", IP: ip, Name: strings.TrimSuffix(a, ".")}
 	}
 }
 
