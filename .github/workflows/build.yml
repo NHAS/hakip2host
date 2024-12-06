@@ -53,9 +53,6 @@ jobs:
         with:
           path: /tmp/binaries/
 
-      - name: Display structure of downloaded files
-        run: ls -l binaries/
-          
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
