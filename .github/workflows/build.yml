@@ -54,7 +54,7 @@ jobs:
           path: binaries/
 
       - name: Display structure of downloaded files
-        run: ls -R binaries/
+        run: ls -l binaries/
           
       - name: Create Release
         id: create_release
@@ -68,12 +68,13 @@ jobs:
             Binaries Release
           draft: false
           prerelease: false
-          
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
         with:
-          files: |
-            binaries/*
+          make_latest: true
+          body: Binaries Release
+          fail_on_unmatched_files: true
           tag_name: ${{ github.ref_name }}-${{ github.sha }}
+          files: |
+            ./binaries/*
