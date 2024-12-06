@@ -56,19 +56,6 @@ jobs:
       - name: Display structure of downloaded files
         run: ls -l binaries/
           
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}-${{ github.sha }}
-          release_name: ${{ github.ref_name }}-${{ github.sha }}
-          body: |
-            Binaries Release
-          draft: false
-          prerelease: false
-
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
